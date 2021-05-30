@@ -1,0 +1,71 @@
+
+
+<html>
+    <head>
+        <style>
+        
+        form {
+            width: 100%;
+         
+        }
+      
+        label {
+          
+            display: table-cell;
+            width: 1px;
+            white-space: nowrap;
+            clear: left;
+            width: 90px;
+            margin:5px;
+            text-align: left;
+            text-decoration-style: solid;
+            text-size-adjust: 53px;
+        }
+        input[type="text"] {
+            width:250px;
+            margin:5px 0px;
+        }
+              
+        </style>
+        </head>
+    <body  background="https://image.freepik.com/free-vector/white-background-with-3d-hexagonal-pattern-design_1017-28443.jpg">
+       
+       <center>
+            <div class="w-50 mt-5">
+                <form action="/" method='POST'>
+            
+                        <br>
+                        <br>
+                        <legend><b><h3>Input values:</h3></b></legend>
+                        <label><b> No of projects:</b></label><br>
+                        <input name="no_of_projects" type="number"  required>
+                        <br>
+                        <br><b><label> Coresub skill:</label></b><br>
+                        <input name="coresub_skill" type="number" required>
+                        <br>
+                        <br> <label><b> Aptitude skill:</b></label><br>
+                        <input name="aptitude_skill" type="number" required>
+                        <br>
+                        <br><label><b>Problemsolving skill:</b></label><br>
+                        <input name="problemsolving_skill" type="number" required>
+                        <br>
+                        <br><label><b> Programming skill:</b></label><br>
+                        <input name="programming_skill" type="number" required>
+                        <br>
+                        <br><label><b> Abstractthinking skill:</b></label><br>
+                        <input name="abstractthink_skill" type="number" required>
+                        <br>
+                        <br><label><b> Design skill:</b></label><br>
+                        <input name="design_skill" type="number" required>
+                        <br>
+                        <br>
+                        <input type="submit" value="SUBMIT">
+                    
+                </form>
+        <br>
+       <p>PREDICTION:</p> {{result}}        
+        
+    
+    </center>
+    </body>
+</html>
