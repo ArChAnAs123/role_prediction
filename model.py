@@ -10,7 +10,7 @@ import pickle
 data = pd.read_csv(r'C:\Users\Home\wbp\project\cdat.csv')
 dt = data.iloc[:-1].values
 label = data.iloc[:,-1] 
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+from sklearn.preprocessing import LabelEncoder
 labelencoder = LabelEncoder()
 df = data
 label = df.iloc[:,-1]
@@ -26,14 +26,13 @@ X = pd.DataFrame(data,columns=['no_of_projects','coresub_skill','aptitude_skill'
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.preprocessing import OrdinalEncoder
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
-from matplotlib import pyplot
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=20)#Decision tree
-X_train2,X_test2,y_train2,y_test2=train_test_split(X,y,test_size=0.3,random_state=10)#XGBoost
-X_train6,X_test6,y_train6,y_test6=train_test_split(X,y,test_size=0.2,random_state=15)#SVM
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)#Decision tree
+X_train2,X_test2,y_train2,y_test2=train_test_split(X,y,test_size=0.3)#XGBoost
+
 
 
 fs = SelectKBest(score_func=chi2, k='all')
