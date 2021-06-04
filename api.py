@@ -4,8 +4,6 @@ import pickle
 from flask import render_template,request
 import pandas as pd
 import numpy as np
-from werkzeug.wrappers import request
-# Use pickle to load in the pre-trained model.
 
 import model as m
 with open('boost.pkl', 'rb') as f:
