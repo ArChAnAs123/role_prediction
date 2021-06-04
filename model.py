@@ -25,7 +25,7 @@ X = pd.DataFrame(data,columns=['no_of_projects','coresub_skill','aptitude_skill'
                                 'design_skill'])
 from pandas import read_csv
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 
@@ -55,9 +55,9 @@ def Dec_tree(X_train,y_train,X_test,y_test):
 from xgboost import XGBClassifier  
 def xgboost(X_train,y_train,X_test,y_test,clf):
   
-  shape = X_train.shape
+  
   X_train=pd.to_numeric(X_train.values.flatten())
-  X_train=X_train.reshape(shape)
+  
  
   model = XGBClassifier()
   model.fit(X_train, y_train)
