@@ -1,10 +1,6 @@
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn import linear_model
-from sklearn.utils import shuffle
-import matplotlib.pyplot as plt
-from matplotlib import style
 import pickle
 
 data = pd.read_csv(r'C:\Users\Home\wbp\project\cdat.csv')
@@ -30,8 +26,8 @@ from sklearn.feature_selection import SelectKBest
 from sklearn.feature_selection import chi2
 
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)#Decision tree
-X_train2,X_test2,y_train2,y_test2=train_test_split(X,y,test_size=0.3)#XGBoost
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+X_train2,X_test2,y_train2,y_test2=train_test_split(X,y,test_size=0.3)
 
 
 
