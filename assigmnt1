@@ -394,3 +394,33 @@ public class NoteRepository {
 		</c:forEach>	
 	</table>
 
+@RequestMapping("/saveNote")
+	public String saveNote(ModelMap model ,@RequestParam Integer noteId,@RequestParam String noteTitle,@RequestParam String noteContent,@RequestParam String noteStatus ) {
+		if(noteId==null||noteTitle.isEmpty()||noteContent.isEmpty()||noteStatus.isEmpty()) {
+			model.addAttribute("error","Please fill out the required fields");
+		}else if(noteRepository.exists(noteId)) {
+			model.addAttribute("error","Note ID already exists");	
+		}else {
+			Note note1 = (Note) context.getBean("note");
+			note1.setCreatedAt(LocalDateTime.now());
+			note1.setNoteId(noteId);
+			note1.setNoteTitle(noteTitle);
+			note1.setNoteContent(noteContent);
+			note1.setNoteStatus(noteStatus);
+			noteRepository.addNote(note1);
+//			List<Note> savedList = noteRepository.getAllNotes();	
+		}
+		model.addAttribute("SavedNotes",noteRepository.getList());
+		return "index";	
+	}
+	
+	/* Define a handler method to delete an existing note by calling the deleteNote() method 
+	 * of the NoteRepository class
+	 * This handler method should map to the URL "/deleteNote" 
+	*/
+	@RequestMapping("/deleteNote")
+	public String deleteNote(ModelMap model ,@RequestParam int noteId) {
+		noteRepository.deleteNote(noteId);
+		model.addAttribute("SavedNotes", noteRepository.getAllNotes());
+		return "redirect:"+"/";
+	}
