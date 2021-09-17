@@ -1,90 +1,87 @@
-package com.stackroute.keepnote.controller;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.ModelMap;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
+package com.stackroute.keepnote.config;
 
 import com.stackroute.keepnote.model.Note;
-import com.stackroute.keepnote.repository.NoteRepository;
+import org.apache.commons.dbcp.BasicDataSource;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.orm.hibernate5.HibernateTransactionManager;
+import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-/*Annotate the class with @Controller annotation. @Controller annotation is used to mark 
- * any POJO class as a controller so that Spring can recognize this class as a Controller
+import javax.sql.DataSource;
+import java.io.IOException;
+import java.util.Properties;
+
+/*This class will contain the application-context for the application.
+ * Define the following annotations:
+ * @Configuration - Annotating a class with the @Configuration indicates that the 
+ *                  class can be used by the Spring IoC container as a source of 
+ *                  bean definitions
+ * @EnableTransactionManagement - Enables Spring's annotation-driven transaction management capability.
+ *                  
  * */
-@Controller
-public class NoteController {
-	/*
-	 * From the problem statement, we can understand that the application requires
-	 * us to implement the following functionalities.
-	 * 
-	 * 1. display the list of existing notes from the collection. Each note should
-	 * contain Note Id, title, content, status and created date. 2. Add a new note
-	 * which should contain the note id, title, content and status. 3. Delete an
-	 * existing note. 4. Update an existing note.
-	 */
+@Configuration
+@EnableTransactionManagement
+public class ApplicationContextConfig {
 
 	/*
-	 * Get the application context from resources/beans.xml file using
-	 * ClassPathXmlApplicationContext() class. Retrieve the Note object from the
-	 * context. Retrieve the NoteRepository object from the context.
+	 * Define the bean for DataSource. In our application, we are using MySQL as the
+	 * dataSource. To create the DataSource bean, we need to know: 1. Driver class
+	 * name 2. Database URL 3. UserName 4. Password
 	 */
-//	 ApplicationContext context = new ClassPathXmlApplicationContext("beans.xml");
-//	 Note note=(Note)context.getBean("note");
-//	 NoteRepository repository=(NoteRepository)context.getBean("NoteRepository");	
+	@Bean
+	public DataSource getDataSource() {
 
-//	@Autowired
-//	Note note;
+		BasicDataSource dataSource = new BasicDataSource();
 
-	@Autowired
-	NoteRepository repository;
+		dataSource.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
-	/*
-	 * Define a handler method to read the existing notes by calling the
-	 * getAllNotes() method of the NoteRepository class and add it to the ModelMap
-	 * which is an implementation of Map for use when building model data for use
-	 * with views. it should map to the default URL i.e. "/"
-	 */
-	@RequestMapping(value = "/", method = RequestMethod.GET)
-	public String getNotes(ModelMap model) {
-		model.addAttribute("notes", repository.getAllNotes());
-		model.addAttribute("command", new Note());
-		return "index";
+		//set database url, username and password
+		dataSource.setUrl("jdbc:mysql://localhost:3306/db");
+		dataSource.setUsername("root");
+		dataSource.setPassword("Root@123");
+
+		return dataSource;
 	}
+		/*
+		 * Define the bean for SessionFactory. Hibernate SessionFactory is the factory
+		 * class through which we get sessions and perform database operations.
+		 */
+		@Bean
+		@Autowired
+		public LocalSessionFactoryBean getSessionFactory (DataSource dataSource) throws IOException {
 
-	/*
-	 * Define a handler method which will read the Note data from request parameters
-	 * and save the note by calling the addNote() method of NoteRepository class.
-	 * Please note that the createdAt field should always be auto populated with
-	 * system time and should not be accepted from the user. Also, after saving the
-	 * note, it should show the same along with existing notes. Hence, reading notes
-	 * has to be done here again and the retrieved notes object should be sent back
-	 * to the view using ModelMap. This handler method should map to the URL
-	 * "/saveNote".
-	 */
-	@RequestMapping(value = "/saveNote", method = RequestMethod.POST)
-	public String saveNote(@ModelAttribute("note") Note note, ModelMap model) {
-//		 System.out.println("inside save note");
-		repository.addNote(note);
-		model.addAttribute("notes", repository.getAllNotes());
-		model.addAttribute("command", new Note());
-		return "index";
-	}
+			LocalSessionFactoryBean sessionFactoryBean = new LocalSessionFactoryBean();
+			sessionFactoryBean.setDataSource(dataSource);
+			Properties properties = new Properties();
+			properties.put("hibernate.show_sql", "true");
+			properties.put("hibernate.dialect", "org.hibernate.dialect.MySQL5Dialect");
+			properties.put("hibernate.hbm2ddl.auto", "update");
+			sessionFactoryBean.setAnnotatedClasses(Note.class);
+			sessionFactoryBean.setHibernateProperties(properties);
+			sessionFactoryBean.afterPropertiesSet();
+			return sessionFactoryBean;
 
-	/*
-	 * Define a handler method to delete an existing note by calling the
-	 * deleteNote() method of the NoteRepository class This handler method should
-	 * map to the URL "/deleteNote"
-	 */
-	@RequestMapping(value = "/deleteNote")
-	public String deleteNote(@RequestParam int noteId, ModelMap model) {
-//		 System.out.println("inside delete note");
-		repository.deleteNote(noteId);
-		model.addAttribute("notes", repository.getAllNotes());
-		model.addAttribute("command", new Note());
-		return "redirect:" + "/";
+		}
+
+
+		/*
+		 * Define the bean for Transaction Manager. HibernateTransactionManager handles
+		 * transaction in Spring. The application that uses single hibernate session
+		 * factory for database transaction has good choice to use
+		 * HibernateTransactionManager. HibernateTransactionManager can work with plain
+		 * JDBC too. HibernateTransactionManager allows bulk update and bulk insert and
+		 * ensures data integrity.
+		 */
+
+	@Bean
+	public HibernateTransactionManager getTransactionManager(SessionFactory sessionFactory) {
+
+		HibernateTransactionManager transaction = new HibernateTransactionManager();
+		transaction.setSessionFactory(sessionFactory);
+		return transaction;
 	}
 
 }
@@ -92,335 +89,448 @@ public class NoteController {
 
 
 
+package com.stackroute.keepnote.config;
+
+import org.springframework.web.servlet.support.AbstractAnnotationConfigDispatcherServletInitializer;
 
 
+/*This class WebApplicationInitializer extends AbstractAnnotationConfigDispatcherServletInitializer
+ * class in Servlet 3.0+ environments in order to configure the ServletContext 
+ * programmatically -- as opposed to the traditional web.xml-based approach. By overriding the methods of
+ * class, we can define the Configuration classes and root mapping so that our application can gets
+ * into spring.
+ */
 
+public class WebAppInitializer extends AbstractAnnotationConfigDispatcherServletInitializer {
+
+	@Override
+	protected Class<?>[] getRootConfigClasses() {
+		return new Class[] { ApplicationContextConfig.class };
+	}
+
+	@Override
+	protected Class<?>[] getServletConfigClasses() {
+		return new Class[] { WebMvcConfig.class };
+	}
+
+	@Override
+	protected String[] getServletMappings() {
+		return new String[] { "/" };
+	}
+
+	
+
+}
+
+
+package com.stackroute.keepnote.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import org.springframework.web.servlet.view.JstlView;
+
+/*This class will contain bean for viewresolver
+ * Define the following annotations:
+ * @Configuration - Annotating a class with the @Configuration indicates that the 
+ *                  class can be used by the Spring IoC container as a source of 
+ *                  bean definitions
+ * @ComponentScan - this annotation is used to search for the Spring components amongst the application
+ * @EnableWebMvc - Adding this annotation to an @Configuration class imports the Spring MVC 
+ * 				   configuration from WebMvcConfigurationSupport 
+ * */
+@Configuration
+@ComponentScan(basePackages = "com.stackroute.keepnote")
+@EnableWebMvc
+public class WebMvcConfig implements WebMvcConfigurer {
+
+	/*
+	 * Define the bean for view resolver so that it can be used to resolve the JSP
+	 * files which are existing in /WEB-INF/views folder. A ViewResolver is capable
+	 * of mapping logical view names to actual views, such as a JSP or a HTML page.
+	 */
+	@Bean
+	public InternalResourceViewResolver resolver() {
+
+		InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
+		viewResolver.setViewClass(JstlView.class);
+		viewResolver.setPrefix("/WEB-INF/views/");
+		viewResolver.setSuffix(".jsp");
+		return viewResolver;
+	}
+}
+
+
+package com.stackroute.keepnote.controller;
+
+import com.stackroute.keepnote.dao.NoteDAO;
+import com.stackroute.keepnote.model.Note;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+/*
+ * Annotate the class with @Controller annotation.@Controller annotation is used to mark
+ * any POJO class as a controller so that Spring can recognize this class as a Controller
+ */
+@Controller
+public class NoteController {
+
+	/*
+	 * From the problem statement, we can understand that the application requires
+	 * us to implement the following functionalities.
+	 *
+	 * 1. display the list of existing notes from the persistence data. Each note
+	 * should contain Note Id, title, content, status and created date.
+	 * 2. Add a new note which should contain the note id, title, content and status.
+	 * 3. Delete an existing note
+	 * 4. Update an existing note
+	 *
+	 */
+
+	/*
+	 * Autowiring should be implemented for the NoteDAO.
+	 * Create a Note object.
+	 *
+	 */
+
+	@Autowired
+	private NoteDAO noteDao;
+
+	private Note note;
+
+	public NoteController(NoteDAO noteDao) {
+		this.noteDao = noteDao;
+	}
+
+	/*
+	 * Define a handler method to read the existing notes from the database and add
+	 * it to the ModelMap which is an implementation of Map, used when building
+	 * model data for use with views. it should map to the default URL i.e. "/index"
+	 */
+
+	@RequestMapping("/")
+	public String indexPage(Model model) {
+		List<Note> list = noteDao.getAllNotes();
+		model.addAttribute("notes", list);
+		return "index";
+	}
+
+	@RequestMapping("/addNote")
+	public String addNotes(Model model) {
+		Note note=new Note();
+		model.addAttribute("note",note);
+		return "addNote";
+	}
+
+	@RequestMapping("/saveNote")
+	public String saveTrack(@ModelAttribute("note") Note note) {
+		noteDao.saveNote(note);
+		return "redirect:/";
+	}
+
+	@RequestMapping("/updateNote")
+	public String updateTrack(@RequestParam("NoteID")int id,Model model) {
+		Note note = noteDao.getNoteById(id);
+		model.addAttribute("note", note);
+		return "addNote";
+	}
+	@RequestMapping("/deleteNote")
+	public String deleteTrack(@RequestParam("NoteID")int id) {
+		noteDao.deleteNote(id);
+		return "redirect:/";
+	}
+
+	/*
+	 * Define a handler method which will read the NoteTitle, NoteContent,
+	 * NoteStatus from request parameters and save the note in note table in
+	 * database. Please note that the CreatedAt should always be auto populated with
+	 * system time and should not be accepted from the user. Also, after saving the
+	 * note, it should show the same along with existing messages. Hence, reading
+	 * note has to be done here again and the retrieved notes object should be sent
+	 * back to the view using ModelMap This handler method should map to the URL
+	 * "/add".
+	 */
+
+	@RequestMapping("/add")
+	public String addNote(ModelMap modelMap, @RequestParam String noteTitle, @RequestParam String noteContent, @RequestParam String noteStatus) {
+
+		note = new Note();
+		note.setNoteTitle(noteTitle);
+		note.setNoteContent(noteContent);
+		note.setNoteStatus(noteStatus);
+
+		if (noteTitle.isEmpty() || noteContent.isEmpty() || noteStatus.isEmpty()) {
+
+			modelMap.addAttribute("error message", "Fill every field..");
+			modelMap.addAttribute("noteList", noteDao.getAllNotes());
+			return "index";
+		} else {
+			noteDao.saveNote(note);
+			modelMap.addAttribute("noteList", noteDao.getAllNotes());
+			return "redirect:/";
+		}
+	}
+
+
+	/*
+	 * Define a handler method which will read the NoteId from request parameters
+	 * and remove an existing note by calling the deleteNote() method of the
+	 * NoteRepository class.This handler method should map to the URL "/delete".
+	 */
+
+	@RequestMapping("/delete")
+	public String deleteNote(ModelMap modelMap, @RequestParam int noteId) {
+
+		noteDao.deleteNote(noteId);
+		modelMap.addAttribute("noteList", noteDao.getAllNotes());
+		return "redirect:/";
+
+	}
+
+	/*
+	 * Define a handler method which will update the existing note. This handler
+	 * method should map to the URL "/update".
+	 */
+
+	@RequestMapping("/update")
+	public String updateNote(ModelMap modelMap, @RequestParam int noteId, @RequestParam String noteTitle, @RequestParam String noteContent, @RequestParam String noteStatus) {
+
+		note = new Note();
+		note.setNoteId(noteId);
+		note.setNoteTitle(noteTitle);
+		note.setNoteContent(noteContent);
+		note.setNoteStatus(noteStatus);
+		note.setCreatedAt(LocalDateTime.now());
+
+		noteDao.UpdateNote(note);
+		modelMap.addAttribute("noteList", noteDao.getAllNotes());
+		return "redirect:/";
+
+	}
+}
+
+
+package com.stackroute.keepnote.dao;
+
+import java.util.List;
+
+import com.stackroute.keepnote.model.Note;
+
+public interface NoteDAO {
+	
+	/* You Should not modify this interface.  You have to implement these methods in corresponding Impl class*/
+
+	public boolean saveNote(Note note);
+
+	public boolean deleteNote(int noteId);
+
+	public List<Note> getAllNotes();
+
+	public Note getNoteById(int noteId);
+
+	public boolean UpdateNote(Note note);
+
+}
+package com.stackroute.keepnote.dao;
+
+import com.stackroute.keepnote.model.Note;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Repository;
+
+import javax.transaction.Transactional;
+import java.util.List;
+
+/*
+ * This class is implementing the NoteDAO interface. This class has to be annotated with @Repository
+ * annotation.
+ * @Repository - is an annotation that marks the specific class as a Data Access Object, thus 
+ * 				 clarifying it's role.
+ * @Transactional - The transactional annotation itself defines the scope of a single database 
+ * 					transaction. The database transaction happens inside the scope of a persistence 
+ * 					context.  
+ * */
+@Repository
+@Transactional
+public class NoteDAOImpl implements NoteDAO {
+
+	/*
+	 * Autowiring should be implemented for the SessionFactory.
+	 */
+	@Autowired
+	private SessionFactory sessionFactory;
+
+
+	 public NoteDAOImpl(SessionFactory sessionFactory) {
+		this.sessionFactory = sessionFactory;
+	}
+
+	/*
+	 * Save the note in the database(note) table.
+	 */
+
+	public boolean saveNote(Note note) {
+		Session session=sessionFactory.getCurrentSession();
+		session.save(note);
+		return true;
+
+	}
+
+	/*
+	 * Remove the note from the database(note) table.
+	 */
+
+	public boolean deleteNote(int noteId) {
+		Session session=sessionFactory.getCurrentSession();
+		session.delete(getNoteById(noteId));
+		return true;
+
+	}
+
+	/*
+	 * retrieve all existing notes sorted by created Date in descending
+	 * order(showing latest note first)
+	 */
+	public List<Note> getAllNotes() {
+		Session session=sessionFactory.getCurrentSession();
+		List<Note> notes=session.createQuery("from Note",Note.class).getResultList();
+		return notes;
+
+	}
+
+	/*
+	 * retrieve specific note from the database(note) table
+	 */
+	public Note getNoteById(int noteId) {
+		Session session=sessionFactory.getCurrentSession();
+		Note note=session.get(Note.class,noteId);
+		return note;
+
+	}
+
+	/* Update existing note */
+
+	public boolean UpdateNote(Note note) {
+		Session session=sessionFactory.getCurrentSession();
+		session.update(note);
+		return true;
+
+	}
+
+}
 
 package com.stackroute.keepnote.model;
 
+import javax.persistence.*;
 import java.time.LocalDateTime;
 
+
+
 /*
- * The class "Note" will be acting as the data model for the Note data in the ArrayList.
+ * The class "Note" will be acting as the data model for the note Table in the database. Please
+ * note that this class is annotated with @Entity annotation. Hibernate will scan all package for 
+ * any Java objects annotated with the @Entity annotation. If it finds any, then it will begin the 
+ * process of looking through that particular Java object to recreate it as a table in your database.
  */
+@Entity
 public class Note {
+	@Id
+	@GeneratedValue(strategy = GenerationType.AUTO)
+	@Column(name = "noteID")
+	private int NoteID;
 
-	/*
-	 * This class should have five fields (noteId, noteTitle, noteContent,
-	 * noteStatus and createdAt). This class should also contain the getters and
-	 * setters for the fields. The value of createdAt should not be accepted from
-	 * the user but should be always initialized with the system date
-	 */
+	@Column(name = "noteTitle")
+	private String NoteTitle;
 
-	private int noteId;
+	@Column(name = "noteContent")
+	private String NoteContent;
 
-	private String noteTitle;
+	@Column(name = "noteStatus")
+	private String NoteStatus;
 
-	private String noteContent;
-
-	private String noteStatus;
-
-	private LocalDateTime createdAt;
+	@Column(name = "CreatedAt")
+	private LocalDateTime createdAt=LocalDateTime.now();
 
 	public Note() {
+
 	}
 
-	public Note(int noteId, String noteTitle, String noteContent, String noteStatus) {
-		super();
-		this.noteId = noteId;
-		this.noteTitle = noteTitle;
-		this.noteContent = noteContent;
-		this.noteStatus = noteStatus;
+	public Note(int i, String string, String string2, String string3, LocalDateTime localDate) {
+		this.NoteID=i;
+		this.NoteTitle=string;
+		this.NoteContent=string2;
+		this.NoteStatus=string3;
+		this.createdAt=localDate;
 	}
 
-	/* All the getters/setters definition should be implemented here */
 	public int getNoteId() {
-		return noteId;
+		return NoteID;
 	}
 
-	public void setNoteId(int noteId) {
-		this.noteId = noteId;
+	public void setNoteId(int noteID) {
+		NoteID = noteID;
 	}
 
 	public String getNoteTitle() {
-		return noteTitle;
+		return NoteTitle;
 	}
 
 	public void setNoteTitle(String noteTitle) {
-		this.noteTitle = noteTitle;
+		NoteTitle = noteTitle;
 	}
 
 	public String getNoteContent() {
-		return noteContent;
+		return NoteContent;
 	}
 
 	public void setNoteContent(String noteContent) {
-		this.noteContent = noteContent;
+		NoteContent = noteContent;
 	}
 
 	public String getNoteStatus() {
-		return noteStatus;
+		return NoteStatus;
 	}
 
 	public void setNoteStatus(String noteStatus) {
-		this.noteStatus = noteStatus;
+		NoteStatus = noteStatus;
 	}
 
 	public LocalDateTime getCreatedAt() {
-		return LocalDateTime.now();
+		return createdAt;
 	}
 
+	public void setCreatedAt(LocalDateTime createdAt) {
+		this.createdAt = createdAt;
+	}
 	/* Override the toString() method */
 
 	@Override
 	public String toString() {
-		return null;
+		return "Note{" +
+				"noteId=" + NoteID +
+				", noteTitle='" + NoteTitle + '\'' +
+				", noteContent='" + NoteContent + '\'' +
+				", noteStatus='" + NoteStatus + '\'' +
+				", createdAt=" + createdAt +
+				'}';
 	}
 
 }
 
 
-package com.stackroute.keepnote.repository;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-
-import org.springframework.stereotype.Repository;
-
-import com.stackroute.keepnote.model.Note;
-
-/*
- * This class contains the code for data storage interactions and methods 
- * of this class will be used by other parts of the applications such
- * as Controllers and Test Cases
- * */
-@Repository
-public class NoteRepository {
-
-	/* Declare a variable called "list" to store all the notes. */
-	List<Note> notes = null;
-
-	public NoteRepository() {
-		/* Initialize the variable using proper data type */
-		notes = new ArrayList<>();
-	}
-
-	/* This method should return all the notes in the list */
-	public List<Note> getList() {
-		return this.notes;
-	}
-
-	/* This method should set the list variable with new list of notes */
-	public void setList(List<Note> list) {
-		this.notes = list;
-	}
-
-	/*
-	 * This method should Note object as argument and add the new note object into
-	 * list
-	 */
-	public void addNote(Note note) {
-		getList().add(note);
-	}
-
-	/* This method should deleted a specified note from the list */
-	public boolean deleteNote(int noteId) {
-		/* Use list iterator to find matching note id and remove it from the list */
-		ListIterator<Note> iterator = this.notes.listIterator();
-		Boolean isRemoved = Boolean.FALSE;
-		while (iterator.hasNext()) {
-			if (noteId == iterator.next().getNoteId()) {
-				iterator.remove();
-				isRemoved = Boolean.TRUE;
-			}
-		}
-		return isRemoved;
-	}
-
-	/* This method should return the list of notes */
-
-	public List<Note> getAllNotes() {
-		return this.getList();
-	}
-
-	/*
-	 * This method should check if the matching note id present in the list or not.
-	 * Return true if note id exists in the list or return false if note id does not
-	 * exists in the list
-	 */
-
-	public boolean exists(int noteId) {
-		return this.notes.stream().filter(note -> note.getNoteId() == noteId).findAny().isPresent();
-	}
-}
 
 
 
 
-
-
-
-
-
-
-
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<%@ page language="java" contentType="text/html; charset=UTF-8"
-	pageEncoding="UTF-8" isELIgnored="false"%>
-<%@taglib uri="http://www.springframework.org/tags/form" prefix="form"%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
-
-<html>
-<head>
-<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-<title>KeepNote</title>
-</head>
-<body>
-	<h2>Keep Notes</h2>
-	<form:form method="POST" action="saveNote">
-		<table>
-			<tr>
-				<td><form:label path="noteId">Note_id</form:label></td>
-				<td><form:input path="noteId" /></td>
-			</tr>
-			<tr>
-				<td><form:label path="noteTitle">Note_title</form:label></td>
-				<td><form:input path="noteTitle" /></td>
-			</tr>
-			<tr>
-				<td><form:label path="noteContent">Note_content</form:label></td>
-				<td><form:input path="noteContent" /></td>
-			</tr>
-			<tr>
-				<td><form:label path="noteStatus">Status</form:label></td>
-				<td><form:input path="noteStatus" /></td>
-			</tr>
-
-			<tr>
-				<td colspan="2"><input type="submit" value="Save Note" /></td>
-			</tr>
-		</table>
-	</form:form>
-
-	<hr />
-	<h2>List of Notes</h2>
-	<table border="1">
-		<thead style="font-weight: bold">
-			<td>Id</td>
-			<td>Title</td>
-			<td>Content</td>
-			<td>Status</td>
-			<td>createdOn</td>
-			<td>Action</td>
-		</thead>
-		<c:forEach var="notee" items="${notes}">
-			<tr>
-				<td>${notee.noteId}</td>
-				<td>${notee.noteTitle}</td>
-				<td>${notee.noteContent}</td>
-				<td>${notee.noteStatus}</td>
-				<td>${notee.createdAt}</td>
-				<td><form action="deleteNote" method="post">
-						<input type="hidden" id="noteId" name="noteId"
-							value="${notee.noteId}" />
-						<button type="submit">Delete</button>
-					</form></td>
-			</tr>
-			<br />
-		</c:forEach>
-	</table>
-
-</html>
-<form action="saveNote" method="post">
-	  
-	  Note ID:<br>
-	  <input type="number" id="noteId" name="noteId"><br>
-	  Title:<br>
-	  <input type="text" id="noteTitle" name="noteTitle"><br>
-	  Content:<br>
-	  <input type="textarea" id="noteContent" name="noteContent"><br>
-	  Status:<br>
-	  <select id="noteStatus" name= "noteStatus">
-		  <option value="active">Active</option>
-		  <option value="inactive">Inactive</option>
-	  </select>
-	  <br>
-	  <br>
-	  <input type="submit" value="Submit">
-	  
-	</form> 
-	<br>
-	<!-- display all existing notes in a tabular structure with Id, Title,Content,Status, Created Date and Action -->
-	<c:if test="${not empty error}">
-	   <p style="color:red">Error</p>: ${error}
-	</c:if>
-	<h2>Saved Notes</h2>
-	<table>
-	<c:forEach items="${SavedNotes}" var="note">
-		<tr>
-		<td>Note ID</td>
-		<td>${note.noteId}</td>
-		</tr>
-		
-		<tr>
-		<td>Title</td>
-		<td>${note.noteTitle}</td>
-		</tr>
-		
-		<tr>
-		<td>Content</td>
-		<td>${note.noteContent}</td>
-		</tr>
-		
-		<tr>
-		<td>Status</td>
-		<td>${note.noteStatus}</td>
-		</tr>
-		
-		<tr>
-		<td>Created at</td>
-		<td>${note.createdAt}</td>
-		</tr>
-		<tr>
-		<td>
-		
-		<form action="deleteNote" method="post">
-			<input type="hidden" id="noteId" name="noteId" value="${note.noteId}"/>
-			<button type="submit">Delete</button>
-		</form>
-		</td>
-		</tr>
-		</c:forEach>	
-	</table>
-
-@RequestMapping("/saveNote")
-	public String saveNote(ModelMap model ,@RequestParam Integer noteId,@RequestParam String noteTitle,@RequestParam String noteContent,@RequestParam String noteStatus ) {
-		if(noteId==null||noteTitle.isEmpty()||noteContent.isEmpty()||noteStatus.isEmpty()) {
-			model.addAttribute("error","Please fill out the required fields");
-		}else if(noteRepository.exists(noteId)) {
-			model.addAttribute("error","Note ID already exists");	
-		}else {
-			Note note1 = (Note) context.getBean("note");
-			note1.setCreatedAt(LocalDateTime.now());
-			note1.setNoteId(noteId);
-			note1.setNoteTitle(noteTitle);
-			note1.setNoteContent(noteContent);
-			note1.setNoteStatus(noteStatus);
-			noteRepository.addNote(note1);
-//			List<Note> savedList = noteRepository.getAllNotes();	
-		}
-		model.addAttribute("SavedNotes",noteRepository.getList());
-		return "index";	
-	}
-	
-	/* Define a handler method to delete an existing note by calling the deleteNote() method 
-	 * of the NoteRepository class
-	 * This handler method should map to the URL "/deleteNote" 
-	*/
-	@RequestMapping("/deleteNote")
-	public String deleteNote(ModelMap model ,@RequestParam int noteId) {
-		noteRepository.deleteNote(noteId);
-		model.addAttribute("SavedNotes", noteRepository.getAllNotes());
-		return "redirect:"+"/";
-	}
