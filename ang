@@ -1,0 +1,15 @@
+imports:      [ BrowserModule, FormsModule ],
+  declarations: [ AppComponent, CompOneComponent, CompTwoComponent ],
+  bootstrap:    [ AppComponent ]
+  <app-comp-one #one></app-comp-one>
+  
+  
+  sendClickEvent() {
+  this.subject.next();
+}
+getClickEvent(): Observable<any>{ 
+  return this.subject.asObservable();
+}
+
+
+clickEventsubscription:Subscription;
